@@ -97,7 +97,7 @@ vim.o.signcolumn = 'yes'
 vim.o.updatetime = 500
 
 -- Decrease mapped sequence wait time
-vim.o.timeoutlen = 300
+vim.o.timeoutlen = 500
 
 -- Configure how new splits should be opened
 vim.o.splitright = true
@@ -135,8 +135,8 @@ vim.o.expandtab = false
 vim.o.tabstop = 4
 vim.o.shiftwidth = 4
 
--- Hightlight the 80th column with a 5 column gutter
-vim.o.colorcolumn = '80,81,82,83,84'
+-- Hightlight the 80th column with a 10 column gutter
+vim.o.colorcolumn = '80,81,82,83,84,85,86,87,88,89'
 
 -- [[ Basic Keymaps ]]
 --  See `:help vim.keymap.set()`
@@ -144,8 +144,6 @@ vim.o.colorcolumn = '80,81,82,83,84'
 -- Clear highlights on search when pressing <Esc> in normal mode
 --  See `:help hlsearch`
 vim.keymap.set('n', '<Esc>', '<cmd>nohlsearch<CR>')
-
--- Diagnostic keymaps
 vim.keymap.set('n', '<leader>q', vim.diagnostic.setloclist, { desc = 'Open diagnostic [Q]uickfix list' })
 
 -- Keybinds to make split navigation easier.
@@ -170,9 +168,15 @@ vim.keymap.set('n', '<leader>w', '<cmd>w<CR>', { desc = '[W]rite file' })
 -- Copy and paste shortcuts
 vim.keymap.set('n', '<leader>p', '"+p', { desc = '[P]ut/paste from clipboard after cursor' })
 vim.keymap.set('n', '<leader>P', '"+P', { desc = '[P]ut/paste from clipboard before cursor' })
-vim.keymap.set('n', '<leader>y', '"+y', { desc = '[Y]ank to clipboard' })
-vim.keymap.set('n', '<leader>Y', '"+Y', { desc = '[Y]ank through end of line to clipboard' })
-vim.keymap.set('n', '<leader>d', '"_dd', { desc = '[D]elete line into black hole register' })
+vim.keymap.set({'n','v'}, '<leader>y', '"+y', { desc = '[Y]ank to clipboard' })
+vim.keymap.set({'n','v'}, '<leader>Y', '"+Y', { desc = '[Y]ank through end of line to clipboard' })
+vim.keymap.set({'n','v'}, '<leader>d', '"_d', { desc = '[D]elete into black hole register' })
+
+-- Movement
+--vim.keymap.set('n', 'n', 'nzz', { desc = 'Move to next search result and center screen.' })
+--vim.keymap.set('n', 'N', 'Nzz', { desc = 'Move to previous search result and center screen.' })
+
+
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
@@ -240,6 +244,7 @@ require('lazy').setup({
   -- options to `gitsigns.nvim`.
   --
   -- See `:help gitsigns` to understand what the configuration keys do
+	--[[
   { -- Adds git related signs to the gutter, as well as utilities for managing changes
     'lewis6991/gitsigns.nvim',
     opts = {
@@ -250,8 +255,17 @@ require('lazy').setup({
         topdelete = { text = '‾' },
         changedelete = { text = '~' },
       },
+      status_formatter = function(status)
+          local added, changed, removed, head = status.added, status.changed, status.removed, status.head
+          local status_txt = { head .. ' ' }
+          if added   and added   > 0 then table.insert(status_txt, '+'..added  ) end
+          if changed and changed > 0 then table.insert(status_txt, '~'..changed) end
+          if removed and removed > 0 then table.insert(status_txt, '-'..removed) end
+          return table.concat(status_txt, '')
+        end
     },
   },
+	]]--
 
   -- NOTE: Plugins can also be configured to run Lua code when they are loaded.
   --
@@ -887,6 +901,14 @@ require('lazy').setup({
       --  - ci'  - [C]hange [I]nside [']quote
       require('mini.ai').setup { n_lines = 500 }
 
+			-- Animate movements to make them less disorienting. May remove this later 
+			-- if it seems too slow. Already disabling some of them...
+			require('mini.animate').setup({
+				cursor = { enable = false },
+				open = { enable = false },
+				close = { enable = false },
+			})
+
       -- Add/delete/replace surroundings (brackets, quotes, etc.)
       --
       -- - saiw) - [S]urround [A]dd [I]nner [W]ord [)]Paren
@@ -901,12 +923,42 @@ require('lazy').setup({
       -- set use_icons to true if you have a Nerd Font
       statusline.setup { use_icons = vim.g.have_nerd_font }
 
-      -- You can configure sections in the statusline by overriding their
-      -- default behavior. For example, here we set the section for
-      -- cursor location to LINE:COLUMN
+      -- Setup status line with single letter mode using custom table...
+			-- (gitsigns is deactivated so there's no git provider and no git info)
+			-- stylua: ignore start
+			local vim_modes = setmetatable({
+				['n']    = { display = 'N',	highlight = 'MiniStatuslineModeNormal' },
+				['v']    = { display = 'V',	highlight = 'MiniStatuslineModeVisual' },
+				['V']    = { display = 'V',	highlight = 'MiniStatuslineModeVisual' },
+				['CTRL_V'] = { display = 'V',	highlight = 'MiniStatuslineModeVisual' },
+				['s']    = { display = 'S',	highlight = 'MiniStatuslineModeVisual' },
+				['S']    = { display = 'S',	highlight = 'MiniStatuslineModeVisual' },
+				['CTRL_S'] = { display = 'S',	highlight = 'MiniStatuslineModeVisual' },
+				['i']    = { display = 'I',	highlight = 'MiniStatuslineModeInsert' },
+				['R']    = { display = 'R',	highlight = 'MiniStatuslineModeReplace' },
+				['c']    = { display = 'C',	highlight = 'MiniStatuslineModeCommand' },
+				-- Prompt (hit enter)
+				['r']    = { display = 'P',	highlight = 'MiniStatuslineModeOther' },
+				-- S[h]ell
+				['!']    = { display = 'H',	highlight = 'MiniStatuslineModeOther' },
+				-- Termial
+				['t']    = { display = 'T',	highlight = 'MiniStatuslineModeOther' },
+			}, {
+					-- By default return 'Unknown' but this shouldn't be needed
+					__index = function()
+						return   { display = 'U', highlight = '%#MiniStatuslineModeOther#' }
+					end,
+				})
+			-- stylua: ignore end
+      statusline.section_mode = function()
+				local mode_info = vim_modes[vim.fn.mode()]
+				return mode_info.display, mode_info.highlight
+			end
+
+			-- ...and percentage and column for location. 
       ---@diagnostic disable-next-line: duplicate-set-field
       statusline.section_location = function()
-        return '%P:%-2v'
+        return '%P|%-2v'
       end
 
       -- ... and there is more!
@@ -989,4 +1041,4 @@ require('lazy').setup({
 })
 
 -- The line beneath this is called `modeline`. See `:help modeline`
--- vim: ts=2 sts=2 sw=2 et
+-- vim: ts=2 sts=2 sw=2
