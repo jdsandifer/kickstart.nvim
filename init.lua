@@ -173,10 +173,19 @@ vim.keymap.set({'n','v'}, '<leader>Y', '"+Y', { desc = '[Y]ank through end of li
 vim.keymap.set({'n','v'}, '<leader>d', '"_d', { desc = '[D]elete into black hole register' })
 
 -- Movement
---vim.keymap.set('n', 'n', 'nzz', { desc = 'Move to next search result and center screen.' })
---vim.keymap.set('n', 'N', 'Nzz', { desc = 'Move to previous search result and center screen.' })
+-- Search
+vim.keymap.set('n', 'n', 'nzz', { desc = 'Move to next search result and center screen.' })
+vim.keymap.set('n', 'N', 'Nzz', { desc = 'Move to previous search result and center screen.' })
+vim.keymap.set('n', '<leader>j', 'J', { desc = '[J]oin lines' })
 
+-- Directional
+vim.keymap.set('n', 'J', '5j', { desc = '[J]ump down by 5 lines' })
+vim.keymap.set('n', 'K', '5k', { desc = 'Jump up by 5 lines' })
+vim.keymap.set('n', 'H', '5h', { desc = 'Jump left by 5 characters' })
+vim.keymap.set('n', 'L', '5l', { desc = 'Jump right by 5 characters' })
 
+-- Create a different mapping for the join command
+vim.keymap.set('n', '<leader>j', 'J', { desc = '[J]oin lines' })
 
 -- [[ Basic Autocommands ]]
 --  See `:help lua-guide-autocommands`
